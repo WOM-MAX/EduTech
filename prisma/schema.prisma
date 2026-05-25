@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model NivelEducativo {
+  id     Int    @id @default(autoincrement())
+  nombre String @unique
+  orden  Int
+  oas    ObjetivoAprendizaje[]
+}
+
+model Asignatura {
+  id     Int    @id @default(autoincrement())
+  nombre String @unique
+  ejes   EjeCurricular[]
+  oas    ObjetivoAprendizaje[]
+}
+
+model EjeCurricular {
+  id           Int        @id @default(autoincrement())
+  nombre       String
+  asignaturaId Int
+  asignatura   Asignatura @relation(fields: [asignaturaId], references: [id])
+  oas          ObjetivoAprendizaje[]
+
+  @@unique([nombre, asignaturaId])
+}
+
+enum NivelBloom {
+  RECORDAR
+  COMPRENDER
+  APLICAR
+  ANALIZAR
+  EVALUAR
+  CREAR
+}
+
+model ObjetivoAprendizaje {
+  id                     Int            @id @default(autoincrement())
+  codigo                 String
+  descripcion            String         @db.Text
+  nivelBloom             NivelBloom
+  indicadores            String         @db.Text
+  sugerenciasActividades Json?
+  conceptosClave         Json?
+  erroresFrecuentes      Json?
+  estrategiasDua         Json?
+
+  nivelEducativoId       Int
+  nivelEducativo         NivelEducativo @relation(fields: [nivelEducativoId], references: [id])
+
+  asignaturaId           Int
+  asignatura             Asignatura     @relation(fields: [asignaturaId], references: [id])
+
+  ejeCurricularId        Int
+  ejeCurricular          EjeCurricular  @relation(fields: [ejeCurricularId], references: [id])
+
+  @@unique([codigo, nivelEducativoId, asignaturaId, ejeCurricularId])
+  rubricaMaster          RubricaMaster?
+  rubricasCache          RubricaCache[]
+}
+
+model RubricaMaster {
+  id                    Int                 @id @default(autoincrement())
+  objetivoAprendizajeId Int                 @unique
+  objetivoAprendizaje   ObjetivoAprendizaje @relation(fields: [objetivoAprendizajeId], references: [id], onDelete: Cascade)
+  criterios             CriterioMaster[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+}
+
+model CriterioMaster {
+  id              Int           @id @default(autoincrement())
+  nombre          String        @db.Text
+  destacado       String        @db.Text
+  adecuado        String        @db.Text
+  basico          String        @db.Text
+  insuficiente    String        @db.Text
+  rubricaMasterId Int
+  rubricaMaster   RubricaMaster @relation(fields: [rubricaMasterId], references: [id], onDelete: Cascade)
+}
+
+model RubricaCache {
+  id                    Int                 @id @default(autoincrement())
+  objetivoAprendizajeId Int
+  objetivoAprendizaje   ObjetivoAprendizaje @relation(fields: [objetivoAprendizajeId], references: [id], onDelete: Cascade)
+  contexto              String              @db.Text
+  hashKey               String              @unique
+  criterios             Json
+  createdAt             DateTime            @default(now())
+}
